@@ -49,8 +49,20 @@ RUN eval CHECKSUM=\$YQ_SHA512_${DOCKER_PLATFORM_CPU_ARCHITECTURE} && \
     echo "${CHECKSUM}  /usr/local/bin/yq" | sha512sum -c -
 RUN chmod +x /usr/local/bin/yq
 
+# Runtime user matching the base image so tests can run unprivileged against the same UID and home
+ENV KEELSON_USER_ID=4242
+RUN mkdir -p /home/keelson
+RUN groupadd -g ${KEELSON_USER_ID} keelson
+RUN useradd -u ${KEELSON_USER_ID} -g keelson -d /home/keelson -s /bin/bash keelson
+RUN chown keelson:keelson /home/keelson
+
+# Deterministic time and text handling for every process in the image
+ENV TZ=UTC
+ENV LC_ALL=C
+
 # Test layout: mount the consumer repo at /workspace, bats walks src/tests/
 RUN mkdir -p /workspace
+RUN chown keelson:keelson /workspace
 WORKDIR /workspace
 
 ENV PS1="\u@\h:\w\\$ "
